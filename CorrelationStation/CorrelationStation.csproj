@@ -194,6 +194,7 @@
     <Compile Include="Controllers\CsvReader.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\ManageController.cs" />
+    <Compile Include="Dal\Blobs.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
@@ -276,6 +277,7 @@
     <Compile Include="Models\KeyValue.cs" />
     <Compile Include="Models\LinePlotCategory.cs" />
     <Compile Include="Models\ManageViewModels.cs" />
+    <Compile Include="Models\MapAndBlobVM.cs" />
     <Compile Include="Models\Methods.cs" />
     <Compile Include="Models\PearsonCorr.cs" />
     <Compile Include="Models\ScatterPlotRequest.cs" />
@@ -361,6 +363,7 @@
     <Content Include="Views\Home\Test.cshtml" />
     <Content Include="Views\Shared\_ReportTable.cshtml" />
     <Content Include="Views\Home\MyStatSummaries.cshtml" />
+    <Content Include="Views\Home\ScatterDetail.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

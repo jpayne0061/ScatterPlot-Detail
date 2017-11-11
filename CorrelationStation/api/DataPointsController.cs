@@ -9,6 +9,7 @@ using System.Data.Entity;
 using Microsoft.AspNet.Identity;
 using System.Web.Helpers;
 using System.Data.Entity;
+using CorrelationStation.Dal;
 
 namespace CorrelationStation.Controllers
 {
@@ -20,6 +21,37 @@ namespace CorrelationStation.Controllers
         {
             _context = new ApplicationDbContext();
         }
+
+
+        [HttpGet]
+        public List<dynamic> GetScatterPlot(int id)
+        {
+            Blobs blob = new Blobs();
+
+            List<string> mappedColumns = blob.GetMap(id).Split(',').ToList();
+
+            string data1 = mappedColumns[0];
+            string data2 = mappedColumns[1];
+
+            mappedColumns.RemoveAt(0);
+            mappedColumns.RemoveAt(0);
+
+            string columns = string.Join(",", mappedColumns);
+
+            Dictionary<int, string> map = Methods.MapToDict(columns);
+
+            List<string> rows = blob.GetBlobs(id);
+
+            List<dynamic> jsonList = Methods.MakeJsonFromBlobAndMap(map, rows);
+
+            jsonList.Insert(0, data1);
+            jsonList.Insert(0, data2);
+
+            return jsonList;
+
+        }
+
+
 
 
         [HttpPost]
@@ -41,6 +73,30 @@ namespace CorrelationStation.Controllers
 
             return dataPairs;
         }
+
+
+        [HttpPost]
+        public List<double[]> ReturnPearsonWithMeta([FromBody] ScatterPlotRequest scatterPlotRequest)
+        {
+            int statId = scatterPlotRequest.StatId;
+
+            PearsonCorr pearsonCorr = _context.PearsonCorrs.SingleOrDefault(ss => ss.Id == statId);
+            List<double[]> dataPairs;
+
+            if (scatterPlotRequest.Switch == "false")
+            {
+                dataPairs = Methods.ProcessScatterPlotRequestWithMeta(pearsonCorr.Variable1Data, pearsonCorr.Variable2Data);
+            }
+            else
+            {
+                dataPairs = Methods.ProcessScatterPlotRequestWithMeta(pearsonCorr.Variable2Data, pearsonCorr.Variable1Data);
+            }
+
+            return dataPairs;
+        }
+
+
+
 
         [HttpGet]
         public List<DateAndNumeralValues> GetNumeralLinePlot(int id)

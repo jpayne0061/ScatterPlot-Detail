@@ -8,6 +8,7 @@ using CsvHelper;
 using System.Data.Entity;
 using System.Web.Mvc;
 using Microsoft.VisualBasic.FileIO;
+using Newtonsoft.Json;
 
 namespace CorrelationStation.Models
 {
@@ -195,6 +196,28 @@ namespace CorrelationStation.Models
             return dataPairs;
         }
 
+
+        public static List<double[]> ProcessScatterPlotRequestWithMeta(string data1, string data2)
+        {
+            //int count = data2.Split(',').Select(x => double.Parse(x)).ToList().Count();
+
+            List<double>[] dataOne = RemoveOutliers(data1.Split(',').Select(x => double.Parse(x)).ToList(), data2.Split(',').Select(x => double.Parse(x)).ToList());
+            //List<double> dataTwo = RemoveOutliers(data2.Split(',').Select(x => double.Parse(x)).ToList());
+            int count = dataOne[0].Count();
+
+            List<double[]> dataPairs = new List<double[]>();
+
+            for (var i = 0; i < count; i++)
+            {
+                dataPairs.Add(new double[2] { dataOne[0][i], dataOne[1][i] });
+            }
+
+            return dataPairs;
+        }
+
+
+
+
         public static string ConcatAlph(string a, string b)
         {
             if (string.Compare(a, b) == -1)
@@ -207,43 +230,95 @@ namespace CorrelationStation.Models
             }
         }
 
-        public static Dictionary<string, List<string>> CsvToDictionary(string path)
+        public static void CsvToDictionary(string path, MapAndBlobVM mapAndBlob)
         {
-            Dictionary<int, string> columnIndex = new Dictionary<int, string>();
-
-            Dictionary<string, List<string>> dictFile = new Dictionary<string, List<string>>();
-
-
-            string line1 = System.IO.File.ReadLines(path).First();
-
-            string[] values = line1.Split(',');
-
-            for (var i = 0; i < values.Length; i++)
-            {
-
-                columnIndex.Add(i, values[i].Replace("\"", ""));
-                dictFile.Add(values[i].Replace("\"", ""), new List<string>());
-            }
-
 
             using (TextReader fileReader = System.IO.File.OpenText(path))
             {
-                var parser = new CsvParser(fileReader);
-                parser.Read();
-                while (true)
-                {
-                    var row = parser.Read();
-                    if (row == null)
-                    {
-                        break;
-                    }
-                    Methods.ProcessLine(row, columnIndex, dictFile);
-                }
+
+                string columns = MapColumns(fileReader.ReadLine(), mapAndBlob.DataColumns);
+
+                Dal.Blobs blob = new Dal.Blobs();
+
+                CsvParser parser = new CsvParser( fileReader );
+
+                blob.SaveBlobs(parser, mapAndBlob);
+                blob.SaveMap(mapAndBlob, columns);
+
             }
 
-            return dictFile;
+        }
+
+        public static string MapColumns(string columnString, List<string> dataColumns)
+        {
+            string[] columnSplit = columnString.Split(',');
+
+            for (var i = 0; i < columnSplit.Length; i++)
+            {
+                columnSplit[i] = columnSplit[i].Insert(0, i.ToString() + "|");
+            }
+
+            string joinedString = string.Join(",", columnSplit);
+
+            return joinedString.Insert(0, dataColumns[0] + "," + dataColumns[1] + ",");
+        }
+
+        public static Dictionary<int, string> MapToDict(string map)
+        {
+            string[] columnSplit = map.Split(',');
+
+            Dictionary<int, string> dictMap = new Dictionary<int, string>();
+
+            foreach (string pair in columnSplit)
+            {
+                string[] splitPair = pair.Split('|');
+                dictMap.Add(Int32.Parse(splitPair[0]), splitPair[1]);
+
+            }
+            return dictMap;
+                    
+        }
+
+        public static List<dynamic> MakeJsonFromBlobAndMap(Dictionary<int, string> map, List<string> blobs)
+        {
+            List<dynamic> json = new List<dynamic>();
+
+            foreach (string blob in blobs)
+            {
+                string[] blobSplit = blob.Split(',');
+
+                string jsonObject = "{";
+
+                if (blobSplit.Length == map.Count())
+                {
+                    for (var i = 0; i < blobSplit.Length; i++)
+                    {
+                        string jsonProperty = MakeJsonProperty(map[i], blobSplit[i]);
+                        if (i != (blobSplit.Length - 1))
+                        {
+                            jsonProperty += ",";
+                        }
+                        jsonObject += jsonProperty;
+                    }
+                    jsonObject += "}";
+
+                    dynamic jsonD = JsonConvert.DeserializeObject(jsonObject);
+                    json.Add(jsonD);
+                }
+
+
+            }
+
+            return json;
 
         }
+
+        public static string MakeJsonProperty(string key, string value)
+        {
+
+            return "\"" + key + "\"" + ":" + "\"" + value + "\"";
+        }
+
 
         public static void MakeDropDownAndFirstFive(SelectTypeVM selectTypeVM)
         {

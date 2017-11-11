@@ -118,20 +118,20 @@ namespace CorrelationStation.Controllers
             //check variable types
 
 
+            MapAndBlobVM mapAndBlob = new MapAndBlobVM();
+            //mapAndBlob.DataColumns = vm.ColumnTypes.Keys.ToList();
+            //Where(x => x.Value != "").ToList().Select(x => x.Key).ToList()
+            mapAndBlob.DataColumns = vm.ColumnTypes.Where(x => x.Value != "").ToList().Select(x => x.Key).ToList();
 
 
-            Dictionary<string, List<string>> dictFile = Methods.CsvToDictionary(vm.Path);
+            Methods.CsvToDictionary(vm.Path, mapAndBlob);
 
-            StatSummaryVM summaryVM = Methods.GetSummaryVM(dictFile, vm);
-            summaryVM.CreatedOn = DateTime.Now;
-
-            string userId = User.Identity.GetUserId();
-
-            Methods.SaveStatSummary(summaryVM, userId);
+            
 
             ViewBag.Saved = "true";
 
-            return View("Report", summaryVM);
+            //return View("Report", summaryVM);
+            return View("ScatterDetail", mapAndBlob);
         }
 
         public ActionResult GetReport(int id)

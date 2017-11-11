@@ -1,0 +1,137 @@
+﻿@model CorrelationStation.Models.MapAndBlobVM
+
+<h2>ScatterDetail</h2>
+
+
+<div id="getTheScatterDetail" tape-id="@Model.TapeId">Get Scatter</div>
+
+<div class="graph-div"></div>
+
+Need to build controller action that takes tapeId and:
+
+1. Gets all rows from dbo.Blobs with same tapeId
+2. Gets Map from dbo.TapeToMap with same tapeId
+3. Sends back array of JSON objects with rows mapped out 
+<script src="https://code.jquery.com/jquery-3.2.1.min.js"
+        integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+        crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.9.1/d3.js"></script>
+<script>
+
+    var globalData;
+
+    $(document.body).on("click", "#getTheScatterDetail", function () {
+        var id = $(this).attr("tape-id");
+        console.log("tape id: ", id);
+
+        getScatterPlot(scatterPlot, id);
+
+    });
+
+
+    var getScatterPlot = function (callback, id) {
+        $.ajax({
+            url: "/api/DataPoints/GetScatterPlot/" + id,
+            cache: false,
+            success: function (data) { callback(data) }
+            //all this stuff below needs to go in a separate function
+        });
+    }
+
+    var getAllProperties = function(object)
+    {
+        
+
+    }
+
+
+
+    var scatterPlot = function (data) {
+
+        var numProp1 = data.shift();
+        var numProp2 = data.shift();
+
+        globalData = data;
+        var classUnique = new Date().valueOf();
+
+        var graphDiv = $(".graph-div");
+        graphDiv.empty();
+
+        graphDiv.append("<svg class='chart" + classUnique + "' width='960' height='500'></svg>");
+
+        var radius = 2;
+
+        if (data.length > 10000) {
+            radius = 1;
+        }
+
+        var svg = d3.select(".chart" + classUnique),
+        margin = { top: 20, right: 80, bottom: 30, left: 50 },
+        width = 960,// - margin.left - margin.right,
+        height = 400,// - margin.top - margin.bottom,
+        g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var x = d3.scaleLinear()
+            .domain([0, d3.max(data, function (d) { return d[numProp1]; })])
+            .range([0, width]),
+
+        y = d3.scaleLinear()
+            .domain([0, d3.max(data, function (d) { return d[numProp2]; })])
+            .range([height, 0]);
+
+        console.log("X; ", x, "Y: ", y);
+
+        g.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x))
+        .select(".domain")
+        .remove();
+
+
+        g.append('text')
+          .attr("transform",
+              "translate(" + (width / 2) + " ," +
+                             (height) + ")")
+          .attr('dy', 45) // adjust distance from the bottom edge
+          .attr('class', 'axis-label')
+          .attr('text-anchor', 'middle')
+          .text(numProp1)
+
+
+        g.append("g")
+        .call(d3.axisLeft(y))
+        .append("text")
+        .attr("fill", "#000")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", "0.71em")
+        .attr("text-anchor", "end")
+
+        g.append('text')
+          .attr("transform", "rotate(-90)")
+          .attr("y", -100)
+          .attr("x", 0 - (height / 2))
+          .attr("dy", "1em")
+          .style("text-anchor", "middle")
+            .text(numProp2)
+
+
+        g.selectAll("circle")
+        .data(data)
+        .enter()
+        .append("circle")
+        .attr("cx", function (d) { return x(d[numProp1]); })
+        .attr("cy", function (d) { return y(d[numProp2]); })
+
+        //  .text(function (d, i) { return d[2] +" "+ d[5] + " " + d[6] +""+ ". Mileage: " + d[0] + ", price: " + d[1] + ". " + d[3] + ", " + d[4]; })
+        .attr("r", radius)
+        .append("svg:title")
+            .text(function (d, i) { return JSON.stringify(d) });
+
+        graphDiv.css("height", "500px");
+        //Mileage, Price, Year, City, State, Make, Model
+    }
+
+
+
+</script>
